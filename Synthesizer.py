@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import utils
 from tifffile import imwrite
+import cv2
 
 class Synthesizer:
     def __init__(self, camera_function: pd.DataFrame,
@@ -63,12 +64,20 @@ class Synthesizer:
         files_array =  np.array(sampled_df['file_path'])
         self.files_array = files_array
 
+        # print(f'Generated random samples: \n {self.files_array}')
+
         return files_array
 
-    def save_img(self,filename,ext='.tif'):
+    def save_img(self,filename,ext='.tif',img=[]):
 
+        if len(img) == 0:
+            to_save = self.img_arr
+        else:
+            to_save = img
+
+        print(f'Saving to {filename}...')
         if ext == '.tif':
-            imwrite(filename, self.img_arr, planarconfig='CONTIG')
+            imwrite(filename, to_save, planarconfig='CONTIG')
 
 
     def generate_img_from_file(self, dim: (int,int), filename: str):
@@ -77,14 +86,34 @@ class Synthesizer:
         First we reshape self.files_array and then we find the weighted sum of each element
 
         :return:
+        Doesn't return anything but sets img_arr to be the processed img_arr file
         """
+        # Reset img_arr
+        self.img_arr = []
+
         print('Generating...')
-        print(f'Reshaping...\nself.files_array shape:  {self.files_array.shape}')
+        # print(f'Reshaping...\nself.files_array shape:  {self.files_array.shape}')
         reshaped_file_array = np.reshape(self.files_array, dim)
-        print(f'Reshaping Done\nself.files_array shape:  {reshaped_file_array.shape}')
+        # print(f'Reshaping Done\nself.files_array shape:  {reshaped_file_array.shape}')
 
         for row in reshaped_file_array:
             new_row = [utils.get_weighted_sums_from_txt_file(x, self.camera_function)[1] for x in row]
             self.img_arr.append(new_row)
 
         self.save_img(filename)
+
+
+    def sample_img(self, ratio:float, save = False, filename = '' ):
+        if len(self.img_arr) == 0:
+            raise ValueError('No image to be sampled')
+
+        sampled_image = cv2.resize(np.array(self.img_arr),  # original image
+                                   (0, 0),  # set fx and fy, not the final size
+                                   fx=ratio,
+                                   fy=ratio,
+                                   interpolation=cv2.INTER_NEAREST)
+
+        if save:
+            self.save_img(filename,img=sampled_image)
+
+        return sampled_image
