@@ -92,14 +92,17 @@ class Synthesizer:
         self.img_arr = []
 
         print('Generating...')
-        # print(f'Reshaping...\nself.files_array shape:  {self.files_array.shape}')
+        print(f'Reshaping...\nself.files_array shape:  {self.files_array.shape}')
         reshaped_file_array = np.reshape(self.files_array, dim)
-        # print(f'Reshaping Done\nself.files_array shape:  {reshaped_file_array.shape}')
+        print(f'Reshaping Done\nself.files_array shape:  {reshaped_file_array.shape}')
 
         for row in reshaped_file_array:
             new_row = [utils.get_weighted_sums_from_txt_file(x, self.camera_function)[1] for x in row]
             self.img_arr.append(new_row)
 
+        self.img_arr = np.array(self.img_arr)
+
+        print(f'Image array shape: {self.img_arr.shape}')
         self.save_img(filename)
 
 
