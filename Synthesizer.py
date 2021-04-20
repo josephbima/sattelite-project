@@ -5,20 +5,21 @@ from tifffile import imwrite
 import cv2
 
 class Synthesizer:
-    def __init__(self, camera_function: pd.DataFrame,
-                 start_wavelength=300,
-                 end_wavelength=3000,
-                 start_threshold=50,
-                 end_threshold=500):
+    def __init__(self, camera_function: pd.DataFrame, config = {
+                 'start_wavelength':300,
+                 'end_wavelength':3000,
+                 'start_threshold':50,
+                 'end_threshold':500,
+                 'ignore_limits':False}
+                 ):
 
+        
+        print(f'config: {config}')
         # Camera function
         self.camera_function = camera_function
 
         # Weighted sum configurations
-        self.start_wavelength = start_wavelength
-        self.end_wavelength = end_wavelength
-        self.start_threshold = start_threshold
-        self.end_threshold = end_threshold
+        self.config = config
 
         # Path to pickle serialized dataframe
         self.data_selection_pkl = ''
@@ -27,7 +28,7 @@ class Synthesizer:
         self.files_array = np.array([])
 
         # Image array
-        self.img_arr = []
+        self.img_arr = np.array([])
 
     def generate_random_files(self, n=25, selection_pickle=None):
         """
@@ -97,7 +98,7 @@ class Synthesizer:
         print(f'Reshaping Done\nself.files_array shape:  {reshaped_file_array.shape}')
 
         for row in reshaped_file_array:
-            new_row = [utils.get_weighted_sums_from_txt_file(x, self.camera_function)[1] for x in row]
+            new_row = [utils.get_weighted_sums_from_txt_file(x, self.camera_function, config=self.config)[1] for x in row]
             self.img_arr.append(new_row)
 
         self.img_arr = np.array(self.img_arr)
@@ -120,3 +121,6 @@ class Synthesizer:
             self.save_img(filename,img=sampled_image)
 
         return sampled_image
+
+    def imshow(self, bands=3):
+        return

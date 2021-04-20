@@ -39,7 +39,7 @@ def resample(df:pd.DataFrame, n=5):
 def preprocess_material_response(df, n=5, start=300, limit=3000, start_threshold=50, end_threshold=500,
                                  ignore_limits=False):
     # Assuming the format is df" [wavelength, reflectance]
-
+    
     # We first convert the wavelength from micron to nanometer
     df['wavelength'] = df['wavelength'].apply(lambda x: int(x * 1000))
 
@@ -106,6 +106,11 @@ def get_weighted_sums_from_df(material_df, camera_df, highlight_missing=False):
 
     #     print(f'There are {len(missing)} missing wavelengths in the material function')
 
+    # # Normalize the array
+    # norm = np.linalg.norm(weighted_sums)
+    
+    # weighted_sums = weighted_sums / norm
+
     if highlight_missing:
         print(f'Missing wavelength: {missing} with length {len(missing)}')
 
@@ -114,10 +119,10 @@ def get_weighted_sums_from_df(material_df, camera_df, highlight_missing=False):
 
 def get_weighted_sums_from_txt_file(txt_file, camera_df, config={}):
     df = read_df_from_txt(txt_file)
-    # df = preprocess_material_response(df,start=config.start,limit=config.limit,start_threshold=config.start_threshold,
-    #                                   end_threshold=config.end_threshold,ignore_limits=config.ignore_limits)
+    df = preprocess_material_response(df,start=config['start_wavelength'],limit=config['end_wavelength'],start_threshold=config['start_threshold'],
+                                      end_threshold=config['end_threshold'],ignore_limits=config['ignore_limits'])
 
-    df = preprocess_material_response(df)
+    # df = preprocess_material_response(df, ignore_limits=True)
 
     return get_weighted_sums_from_df(df, camera_df)
 
