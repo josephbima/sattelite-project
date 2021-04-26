@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+from random import choices
 
 # This will make sure the dataframe returned is not erronous
 def read_df_from_txt(file_path):
@@ -122,7 +122,6 @@ def get_weighted_sums_from_txt_file(txt_file, camera_df, config={}):
     df = preprocess_material_response(df,start=config['start_wavelength'],limit=config['end_wavelength'],start_threshold=config['start_threshold'],
                                       end_threshold=config['end_threshold'],ignore_limits=config['ignore_limits'])
 
-    # df = preprocess_material_response(df, ignore_limits=True)
 
     return get_weighted_sums_from_df(df, camera_df)
 
@@ -156,3 +155,66 @@ def get_random_weighted_sums(n=25, pkl='success.pkl', dim=None):
 
 def reshape_array(arr, h, w):
     return np.array(arr).reshape((h, w))
+
+### Growing Algorithm Helper Functions
+def find_first_empty_space(grid):
+    for row in grid:
+        for col in row:
+            if grid[row][col] == 0:
+                return row,col
+
+    return -1
+
+def get_next_coordinate(grid, start, growth_probability):
+    max_row = len(grid)
+    max_col = len(grid[0])
+
+    start_row, start_col = start
+
+    # 0 : Means will not grow
+    # 1 : Will go right
+    # 2 : Will go down
+    population = [0,1,2]
+    weights = [1-(2*growth_probability), growth_probability, growth_probability]
+
+    next_dir = choices(population, weights)
+
+    if next_dir == 0:
+        return -1,-1
+
+    if next_dir == 1:
+        if start_col + 1 >= max_col: # If we hit a wall wen moving right
+            return -1,-1
+        if grid[start_row][start_col+1] != -1: # If we hit an already filled value
+            return -1,-1
+        
+        return start_row, start_col+1
+
+    if next_dir == 2:
+        if start_row+1 >= max_row:
+            return -1,-1
+        if grid[start_row+1][start_col] != -1:
+            return -1,-1 
+        
+        return start_row+1, start_col
+
+
+    return
+
+def growing_algorithm(grid, value, growth_probability, growth_decay):
+
+    ng = np.array(grid)
+
+    # Find available position
+    start = find_first_empty_space(grid)
+
+    # Iterate and grow
+    cur_growth = growth_probability
+    next_row, next_col = get_next_coordinate(grid, start, growth_probability)
+
+    while next_row != -1 and next_col != -1:
+        grid[next_row][next_col] = value
+        next_row, next_col = get_next_coordinate(grid, start, growth_probability)
+
+    # Finish
+    return grid
