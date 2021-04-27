@@ -25,7 +25,7 @@ class Synthesizer:
         self.data_selection_pkl = ''
 
         # Files array
-        self.files_array = np.array([])
+        self.files_arr = np.array([])
 
         # Image array
         self.img_arr = np.array([])
@@ -39,8 +39,10 @@ class Synthesizer:
         :arg selection_pickle path of the pickle object that contains a dataframe
         of the filepath we want to use. Should atleast have the column ['file_path']
 
-        :returns: files_array - np array containing random sampled files
+        :returns: files_arr - np array containing random sampled files
         """
+        self.files_arr = np.array([])
+
         selection_df = pd.DataFrame()
 
         # If selection_pickle is not None, use the path
@@ -62,12 +64,12 @@ class Synthesizer:
         # and return the numpy array
         sampled_df = selection_df.sample(n)
 
-        files_array =  np.array(sampled_df['file_path'])
-        self.files_array = files_array
+        files_arr =  np.array(sampled_df['file_path'])
+        self.files_arr = files_arr
 
-        # print(f'Generated random samples: \n {self.files_array}')
+        # print(f'Generated random samples: \n {self.files_arr}')
 
-        return files_array
+        return files_arr
 
     def save_img(self,filename,ext='.tif',img=[]):
 
@@ -84,7 +86,7 @@ class Synthesizer:
     def generate_img_from_file(self, dim: (int,int), filename: str):
         """
         Doesn't return anything but saves the file under the filename specified
-        First we reshape self.files_array and then we find the weighted sum of each element
+        First we reshape self.files_arr and then we find the weighted sum of each element
 
         :return:
         Doesn't return anything but sets img_arr to be the processed img_arr file
@@ -92,10 +94,10 @@ class Synthesizer:
         # Reset img_arr
         self.img_arr = []
 
-        print('Generating...')
-        print(f'Reshaping...\nself.files_array shape:  {self.files_array.shape}')
-        reshaped_file_array = np.reshape(self.files_array, dim)
-        print(f'Reshaping Done\nself.files_array shape:  {reshaped_file_array.shape}')
+        # print('Generating...')
+        # print(f'Reshaping...\nself.files_arr shape:  {self.files_arr.shape}')
+        reshaped_file_array = np.reshape(self.files_arr, dim)
+        # print(f'Reshaping Done\nself.files_arr shape:  {reshaped_file_array.shape}')
 
         for row in reshaped_file_array:
             new_row = [utils.get_weighted_sums_from_txt_file(x, self.camera_function, config=self.config)[1] for x in row]
@@ -124,3 +126,24 @@ class Synthesizer:
 
     def imshow(self, bands=3):
         return
+
+    def set_files_arr(self, files_arr):
+        self.files_arr = files_arr
+
+    
+    def generate_voronoi(self, width, height, num_cells,num_materials, materials_array=[], sample_random=False, save_img=True, filename='vor.tiff'):
+        if len(materials_array) == 0 and sample_random == False:
+            raise Warning('sample_random has to be True if materials_array is empty, proceeding with random sampling materials')
+        
+        usage_materials_array = materials_array
+        if sample_random:
+            usage_materials_array = self.generate_random_files(num_materials, selection_pickle=self.data_selection_pkl)
+
+        weighted_array = [utils.get_weighted_sums_from_txt_file(x, self.camera_function, config=self.config)[1] for x in usage_materials_array]
+
+        self.img_arr = utils.voronoi(width, height, num_cells, weighted_array)
+        
+        if save_img:
+            self.save_img(filename, img=self.img_arr)
+        
+        return self.img_arr

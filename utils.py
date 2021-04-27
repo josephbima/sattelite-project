@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from random import choices
+import random
+import math
 
 # This will make sure the dataframe returned is not erronous
 def read_df_from_txt(file_path):
@@ -157,64 +158,43 @@ def reshape_array(arr, h, w):
     return np.array(arr).reshape((h, w))
 
 ### Growing Algorithm Helper Functions
-def find_first_empty_space(grid):
-    for row in grid:
-        for col in row:
-            if grid[row][col] == 0:
-                return row,col
 
-    return -1
 
-def get_next_coordinate(grid, start, growth_probability):
-    max_row = len(grid)
-    max_col = len(grid[0])
+def voronoi(width, height, num_cells, materials_array):
 
-    start_row, start_col = start
+    """
+    Generates a voronoi diagaram with num_cells patches using materials from materials array
+    @params:
+        width   (int)              :  width of the image
+        height   (int)              :  height of the image
+        num_cells   (int)              :  number of points/patches generated
+        materials_array(str[])        :  array containing the txt files of the materials
+    """
+    img = np.zeros((width,height,13))
+    imgx, imgy = width, height
 
-    # 0 : Means will not grow
-    # 1 : Will go right
-    # 2 : Will go down
-    population = [0,1,2]
-    weights = [1-(2*growth_probability), growth_probability, growth_probability]
-
-    next_dir = choices(population, weights)
-
-    if next_dir == 0:
-        return -1,-1
-
-    if next_dir == 1:
-        if start_col + 1 >= max_col: # If we hit a wall wen moving right
-            return -1,-1
-        if grid[start_row][start_col+1] != -1: # If we hit an already filled value
-            return -1,-1
+    nx = []
+    ny = []
+    mat_choice = []
+    
+    for i in range(num_cells):
+        # Append random points
+        nx.append(random.randrange(imgx))
+        ny.append(random.randrange(imgy))
         
-        return start_row, start_col+1
+        # Append their corresponding rgb values
+        mat_choice.append(materials_array[random.randrange(len(materials_array))])
 
-    if next_dir == 2:
-        if start_row+1 >= max_row:
-            return -1,-1
-        if grid[start_row+1][start_col] != -1:
-            return -1,-1 
-        
-        return start_row+1, start_col
+    for y in range(imgy):
+        for x in range(imgx):
+            dmin = math.hypot(imgx-1, imgy-1)
+            j = -1
+            for i in range(num_cells):
+                d = math.hypot(nx[i]-x, ny[i]-y)
+                if d < dmin:
+                    dmin = d
+                    j = i
+            img[x][y] = mat_choice[j]
 
-
-    return
-
-def growing_algorithm(grid, value, growth_probability, growth_decay):
-
-    ng = np.array(grid)
-
-    # Find available position
-    start = find_first_empty_space(grid)
-
-    # Iterate and grow
-    cur_growth = growth_probability
-    next_row, next_col = get_next_coordinate(grid, start, growth_probability)
-
-    while next_row != -1 and next_col != -1:
-        grid[next_row][next_col] = value
-        next_row, next_col = get_next_coordinate(grid, start, growth_probability)
-
-    # Finish
-    return grid
+    return img
+    
