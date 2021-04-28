@@ -30,13 +30,35 @@ class DataGenerator:
             try:
                 rand_num_cells = random.randrange(min_num_cells, max_num_cells)
                 rand_num_materials = random.randrange(min_num_materials, max_num_materials)
-                fn = f'{self.dirs}/{template}_{i}.tiff'
+                # fn = f'{self.dirs}/{template}_{i}.tiff'
+                fn = os.path.join(self.dir, f'{template}_{i}.tiff')
                 self.synth.generate_voronoi(im_size[0], im_size[1], rand_num_cells, rand_num_materials,filename=fn, sample_random=True)
             except ValueError:
                 continue
 
-    def generator_sampling(self, im_size, img_type='checkboard', sampling_times=1, template='',start=0, config={}):
+    def generator_sampling(self, im_size, img_type='checkboard', sampling_times=1, template='',start=0, config={
+                                                                                            'min_num_cells': 20,
+                                                                                            'max_num_cells': 40,
+                                                                                            'min_num_materials': 10,
+                                                                                            'max_num_materials': 25,
+                                                                                            'ext': 'npy'
+                                                                                        }):
         """
+
+        Desired file structure:
+        
+        root
+        |
+        |-- image0001
+                |
+                |-- 1x.npy (12x32x32)
+                |-- 2x.npy (12x64x64)
+                |-- 4x.npy (12x128x128)
+                |--...
+                |--64x.npy (12x2048x2048)
+        |-- image 0002
+                |
+                |-- ...
 
         """
         # Add selection data pickle
@@ -46,11 +68,13 @@ class DataGenerator:
         if len(template) == 0:
             img_folder = img_type
         
-        for i in trange(start, self.n+start):
+        for i in range(start, self.n+start):
 
             # Create full path here
             full_path = os.path.join(self.dirs, f'{img_folder}_{i}')
             os.mkdir(full_path)
+
+            print(f'Serving {full_path}...')
 
             if img_type == 'checkboard':
                 # TODO: Complete here, just for fun
@@ -62,8 +86,9 @@ class DataGenerator:
                     max_num_cells = config['max_num_cells']
                     min_num_materials = config['min_num_materials']
                     max_num_materials = config['max_num_materials']
+                    ext = config['ext']
                 except KeyError as e:
-                    print(str(e))
+                    print(f'KeyError: {str(e)}')
 
                 # Use random to generate the parameter passed into the functions
                 rand_num_cells = random.randrange(min_num_cells, max_num_cells)
@@ -71,12 +96,13 @@ class DataGenerator:
 
                 for s in range(sampling_times+1):
                     cur_rate = math.pow(2, s)
-                    fn = os.path.join(full_path, f'{img_type}_{i}_{int(cur_rate)}x.tiff')
+                    fn = os.path.join(full_path, f'{img_folder}_{i}_{int(cur_rate)}x.{ext}')
                     # print(f'Sampling down {cur_rate}x...')
                     if cur_rate == 1:
                         try:
                             self.synth.generate_voronoi(im_size[0], im_size[1], rand_num_cells, rand_num_materials,filename=fn, sample_random=True)
-                        except ValueError:
+                        except ValueError as e:
+                            print(str(e))
                             break
                     else:
                         sample_ratio = 1.0/cur_rate
@@ -86,12 +112,14 @@ class DataGenerator:
                 raise ValueError("Img type not recognized, value available: 'chessboard', 'voronoi'")
 
 
+## Usage
 
 camera_df = pd.read_pickle('normalized_df.pkl')
-dg = DataGenerator(500,camera_df)
-dg.generator_sampling((2048,2048), img_type='voronoi', sampling_times=6, config={
+dg = DataGenerator(1,camera_df)
+dg.generator_sampling((1024,1024), img_type='voronoi',template='voronoi1024', sampling_times=6,start=0, config={
     'min_num_cells': 20,
     'max_num_cells': 40,
     'min_num_materials': 10,
-    'max_num_materials': 25
+    'max_num_materials': 25,
+    'ext':'npy'
 })
