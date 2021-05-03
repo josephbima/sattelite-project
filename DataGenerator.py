@@ -4,11 +4,12 @@ from tqdm import trange
 import random
 import os
 import math
+from pathlib import Path
 
 class DataGenerator:
-    def __init__(self, n, camera_function: pd.DataFrame, dirs='generated_images'):
+    def __init__(self, n, camera_function: pd.DataFrame, dirs='generated_images', synth_config={}):
         self.n = n
-        self.synth = Synthesizer(camera_function)
+        self.synth = Synthesizer(camera_function, config=synth_config)
         self.dirs = dirs
 
         print(f'Created initializor for {n} to {self.dirs}')
@@ -67,19 +68,22 @@ class DataGenerator:
         img_folder = template
         if len(template) == 0:
             img_folder = img_type
-        
-        for i in range(start, self.n+start):
 
-            # Create full path here
-            full_path = os.path.join(self.dirs, f'{img_folder}_{i}')
-            os.mkdir(full_path)
+        i = start
+        value_err = False
 
-            print(f'Serving {full_path}...')
+        while i < self.n + start:
 
             if img_type == 'checkboard':
                 # TODO: Complete here, just for fun
                 pass
             elif img_type == 'voronoi':
+
+                # Create full path here
+                full_path = os.path.join(self.dirs, f'{img_folder}_{i}')
+                Path(full_path).mkdir(parents=True, exist_ok=True)    #python 3.5 above
+
+                
                 try:
                     # Get function parameters from config
                     min_num_cells = config['min_num_cells']
@@ -103,6 +107,7 @@ class DataGenerator:
                             self.synth.generate_voronoi(im_size[0], im_size[1], rand_num_cells, rand_num_materials,filename=fn, sample_random=True)
                         except ValueError as e:
                             print(str(e))
+                            value_err = True
                             break
                     else:
                         sample_ratio = 1.0/cur_rate
@@ -110,15 +115,26 @@ class DataGenerator:
 
             else:
                 raise ValueError("Img type not recognized, value available: 'chessboard', 'voronoi'")
+            
+            if not value_err:
+                i += 1
 
 
 ## Usage
 
+scf = {
+    'start_wavelength':300,
+    'end_wavelength':3000,
+    'start_threshold':250,
+    'end_threshold':1000,
+    'ignore_limits':True
+}
+
 camera_df = pd.read_pickle('normalized_df.pkl')
-dg = DataGenerator(1,camera_df)
-dg.generator_sampling((1024,1024), img_type='voronoi',template='voronoi1024', sampling_times=6,start=0, config={
-    'min_num_cells': 20,
-    'max_num_cells': 40,
+dg = DataGenerator(1,camera_df, synth_config=scf)
+dg.generator_sampling((1024,1024), img_type='voronoi',template='voronoi1024', sampling_times=6,start=1, config={
+    'min_num_cells': 80,
+    'max_num_cells': 100,
     'min_num_materials': 10,
     'max_num_materials': 25,
     'ext':'npy'
